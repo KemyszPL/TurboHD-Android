@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     fun openFile(pickerInitialUri: Uri) {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
+            type = "video/*"
 
             // Optionally, specify a URI for the file that should appear in the
             // system file picker when it loads.
