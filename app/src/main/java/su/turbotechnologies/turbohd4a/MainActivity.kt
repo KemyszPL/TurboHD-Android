@@ -1,6 +1,9 @@
 package su.turbotechnologies.turbohd4a
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -19,10 +22,26 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val turboButton: Button = findViewById(R.id.turboButton)
-
+        val turboButton: Button = findViewById(R.id.turboSelectBtn)
         turboButton.setOnClickListener() {
-            Toast.makeText(this, "TurboClicked!", Toast.LENGTH_SHORT).show()
+            openFile(Uri.EMPTY)
         }
     }
+
+    // Request code for selecting a PDF document.
+    val PICK_AV_FILE = 2
+
+    fun openFile(pickerInitialUri: Uri) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+
+            // Optionally, specify a URI for the file that should appear in the
+            // system file picker when it loads.
+            //putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri)
+        }
+
+        startActivityForResult(intent, PICK_AV_FILE)
+    }
+
 }
