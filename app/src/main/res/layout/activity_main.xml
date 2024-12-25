@@ -8,7 +8,7 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/turboSelectBtn"
+        android:id="@+id/btnPickVideo"
         android:layout_width="314dp"
         android:layout_height="48dp"
         android:layout_marginStart="48dp"
@@ -18,7 +18,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/turboEncodeBtn"
+        android:id="@+id/btnTranscode"
         android:layout_width="314dp"
         android:layout_height="48dp"
         android:layout_marginStart="48dp"
@@ -37,7 +37,17 @@
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="48dp"
+        app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/turbohd_logo"
-        tools:layout_editor_absoluteX="51dp"
-        tools:layout_editor_absoluteY="77dp" />
+        tools:layout_editor_absoluteY="76dp" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="262dp"
+        android:layout_height="15dp"
+        android:layout_marginTop="84dp"
+        app:layout_constraintTop_toBottomOf="@+id/btnTranscode"
+        tools:layout_editor_absoluteX="74dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

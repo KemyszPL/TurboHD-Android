@@ -1,47 +1,117 @@
 package su.turbotechnologies.turbohd4a
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
+import android.provider.MediaStore
+import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.arthenica.ffmpegkit.FFmpegKit
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
+
+    private val PICK_AV_FILE = 1
+    private var selectedVideoUri: Uri? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        val btnPickVideo: Button = findViewById(R.id.btnPickVideo)
+        val btnTranscode: Button = findViewById(R.id.btnTranscode)
+        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+
+        // Handle "Pick Video" button click
+        btnPickVideo.setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "video/*"
+            }
+            startActivityForResult(intent, PICK_AV_FILE)
         }
 
-        val turboButton: Button = findViewById(R.id.turboSelectBtn)
-        turboButton.setOnClickListener() {
-            openFile(Uri.EMPTY)
+        // Handle "Transcode Video" button click
+        btnTranscode.setOnClickListener {
+            if (selectedVideoUri != null) {
+                transcodeVideo(selectedVideoUri!!, progressBar)
+            } else {
+                Toast.makeText(this, "Please select a video first", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    // Request code for selecting a PDF document.
-    val PICK_AV_FILE = 2
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
 
-    fun openFile(pickerInitialUri: Uri) {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "video/*"
+        if (resultCode == Activity.RESULT_OK && requestCode == PICK_AV_FILE) {
+            selectedVideoUri = data?.data // Save the selected video URI
+            Log.d("Selected URI", "Uri: $selectedVideoUri")
+        }
+    }
 
-            // Optionally, specify a URI for the file that should appear in the
-            // system file picker when it loads.
-            //putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri)
+    private fun copyFileToInternalStorage(uri: Uri): String? {
+        val fileName = "temp_video.mp4"
+        val tempFile = File(cacheDir, fileName)
+
+        return try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            tempFile.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun transcodeVideo(uri: Uri, progressBar: ProgressBar) {
+        // Copy the file to a temporary path
+        val tempFilePath = copyFileToInternalStorage(uri)
+
+        if (tempFilePath == null) {
+            Toast.makeText(this, "Failed to access video file", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        startActivityForResult(intent, PICK_AV_FILE)
+        // Define the output path
+        val outputFilePath = File(filesDir, "output_video.mp4").absolutePath
+
+        // Show progress bar
+        progressBar.visibility = View.VISIBLE
+
+        // FFmpeg command to transcode the video
+        val command = "-i $tempFilePath -vcodec libx264 -crf 28 $outputFilePath"
+
+        // Execute the FFmpeg command
+        FFmpegKit.executeAsync(command, { session ->
+            progressBar.visibility = View.GONE // Hide progress bar when done
+
+            if (session.returnCode.isValueSuccess) {
+                Log.d("FFmpeg", "Transcoding completed successfully.")
+                Toast.makeText(this, "Transcoding completed!", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.d("FFmpeg", "Transcoding failed: ${session.returnCode}")
+                Toast.makeText(this, "Transcoding failed", Toast.LENGTH_SHORT).show()
+            }
+        }, { log ->
+            Log.d("FFmpeg Log", log.message) // Log FFmpeg output
+        }, { statistics ->
+            Log.d("FFmpeg Stats", "Frame: ${statistics.videoFrameNumber}")
+        })
     }
+
 
 }
